@@ -47,6 +47,10 @@ namespace Nest
 		{
 			return string.IsNullOrEmpty(value);
 		}
+        public static bool IsNotNullOrEmpty(this string value)
+        {
+            return !value.IsNullOrEmpty();
+        }
 		public static void ForEachWithIndex<T>(this IEnumerable<T> enumerable, Action<T, int> handler)
 		{
 			int idx = 0;

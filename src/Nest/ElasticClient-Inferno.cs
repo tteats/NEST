@@ -11,7 +11,9 @@ using System.Collections.Concurrent;
 
 namespace Nest
 {
-	public partial class ElasticClient
+    using System.Dynamic;
+
+    public partial class ElasticClient
 	{
 		private static ConcurrentDictionary<Type, Func<object, string>> IdDelegates = new ConcurrentDictionary<Type, Func<object, string>>();
 
@@ -73,6 +75,22 @@ namespace Nest
 		internal string GetIdFor<T>(T @object)
 		{
 			var type = typeof(T);
+            BulkParameters<object> bpo = @object as BulkParameters<object>;
+            if(bpo != null)
+            {
+                var expandoObject = bpo.Document as IDictionary<string, object>;
+                if(expandoObject != null)
+                {
+                    object v;
+                    return expandoObject.TryGetValue("_id", out v) ? v.ToString() : null;
+                }
+            }
+            var eo = @object as IDictionary<string, object>;
+            if (eo != null)
+            {
+                object v;
+                return eo.TryGetValue("_id", out v) ? v.ToString() : null;
+            }
 			Func<object, string> cachedLookup;
 			if (IdDelegates.TryGetValue(type, out cachedLookup))
 				return cachedLookup(@object);
@@ -84,8 +102,8 @@ namespace Nest
 			
 			var idProperty = type.GetProperty(propertyName);
 			if (idProperty == null)
-			{ 
-				throw new Exception("Could not infer id for object of type" + type.FullName);
+			{
+                return null;
 			}
 			try
 			{
@@ -283,10 +301,14 @@ namespace Nest
 			foreach (var @object in objects)
 			{
 				var objectAction = action;
-				if (idSelector != null)
-					objectAction += ", \"_id\" : \"{0}\" ".F(idSelector(@object));
+                if (idSelector != null)
+                {
+                    string id = idSelector(@object);
+                    if(id.IsNotNullOrEmpty())
+                        objectAction += ", \"_id\" : \"{0}\" ".F(id);
+                }
 
-				objectAction += "} }\n";
+			    objectAction += "} }\n";
 
 				sb.Append(objectAction);
 				if (command == "index")
@@ -317,10 +339,14 @@ namespace Nest
 					continue;
 
 				var objectAction = action;
-				if (idSelector != null)
-					objectAction += ", \"_id\" : \"{0}\" ".F(idSelector(@object.Document));
+                if (idSelector != null)
+                {
+                    string id = idSelector(@object.Document);
+                    if(id.IsNotNullOrEmpty())
+                        objectAction += ", \"_id\" : \"{0}\" ".F(id);
+                }
 
-				if (!@object.Version.IsNullOrEmpty())
+			    if (!@object.Version.IsNullOrEmpty())
 					objectAction += ", \"version\" : \"{0}\" ".F(@object.Version);
 				if (!@object.Parent.IsNullOrEmpty())
 					objectAction += ", \"parent\" : \"{0}\" ".F(@object.Parent);
