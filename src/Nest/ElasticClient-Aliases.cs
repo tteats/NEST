@@ -147,10 +147,10 @@ namespace Nest
 		/// <summary>
 		/// Rename an old alias for index to a new alias in one operation
 		/// </summary>
-		public IndicesOperationResponse Rename(string index, string oldAlias, string newAlias)
+		public IndicesOperationResponse Rename(string alias, string oldIndex, string newIndex)
 		{
-			var r = _createCommand("remove", new AliasParams { Index = index, Alias = oldAlias });
-			var a = _createCommand("add", new AliasParams { Index = index, Alias = newAlias });
+			var r = _createCommand("remove", new AliasParams { Index = oldIndex, Alias = alias });
+			var a = _createCommand("add", new AliasParams { Index = newIndex, Alias = alias });
 			return this._Alias(r + ", " + a);
 		}
 		/// <summary>
